@@ -1,0 +1,35 @@
+name: deploy
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.14.3
+      - uses: aws-actions/configure-aws-credentials@v5
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ap-northeast-1
+      - run: >-
+          terraform -chdir=infra init
+          -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
+          -backend-config="key=platform-portfolio/dev/terraform.tfstate"
+          -backend-config="region=ap-northeast-1"
+          -backend-config="encrypt=true"
+          -backend-config="use_lockfile=true"
+      - id: ecr
+        run: echo "url=$(terraform -chdir=infra output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
+      - uses: aws-actions/amazon-ecr-login@v2
+      - run: docker build --provenance=false --tag "${{ steps.ecr.outputs.url }}:${GITHUB_SHA}" app
+      - run: docker push "${{ steps.ecr.outputs.url }}:${GITHUB_SHA}"
+      - run: terraform -chdir=infra apply -input=false -auto-approve -var="image_tag=${GITHUB_SHA}" -var="enable_service=true"

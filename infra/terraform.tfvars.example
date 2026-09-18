@@ -1,0 +1,6 @@
+aws_region        = "ap-northeast-1"
+environment       = "dev"
+image_tag         = "0123456789abcdef0123456789abcdef01234567"
+enable_service    = false
+db_multi_az       = false
+# alarm_email     = "operator@example.com"
