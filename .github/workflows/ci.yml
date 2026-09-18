@@ -21,7 +21,7 @@ jobs:
       - run: pip install --requirement app/requirements-dev.txt
       - run: pytest app
       - run: docker build --provenance=false --tag platform-api:ci app
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: aquasecurity/trivy-action@v0.33.1
         with:
           image-ref: platform-api:ci
           scanners: vuln,secret
@@ -47,7 +47,7 @@ jobs:
         working-directory: infra
       - run: tflint --recursive
         working-directory: infra
-      - uses: aquasecurity/trivy-action@0.33.1
+      - uses: aquasecurity/trivy-action@v0.33.1
         with:
           scan-type: config
           scan-ref: infra
