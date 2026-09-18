@@ -13,6 +13,8 @@ This portfolio builds a small FastAPI service on AWS using Terraform:
 
 It is a learning and validation environment designed around production concerns; it is not presented as universally production-ready. The focus is safe infrastructure change, explicit trust boundaries, observable failure, and incident investigation—not the number of AWS services used.
 
+**Deployed to real AWS (ap-northeast-1) on 2026-09-18 and verified end-to-end — then destroyed the same day to avoid cost.** See [AWS validation](#aws-validation) below.
+
 ## What this portfolio demonstrates
 
 - Terraform module boundaries, version constraints, remote state, validation, and plan review.
@@ -30,7 +32,7 @@ It is a learning and validation environment designed around production concerns;
 | --- | --- |
 | Terraform format / init / validate / mock tests | See [current validation record](docs/VALIDATION.md) |
 | Application tests / Docker build / container `/health` | See [current validation record](docs/VALIDATION.md) |
-| Real AWS deployment | **VALIDATED 2026-09-18, DESTROYED SAME DAY** — plan/apply, ECR push, ECS 2/2, healthy targets, `/health` + `/ready` 200, game-day recovery, API-verified cleanup. No standing environment. See [validation record](docs/VALIDATION.md) |
+| Real AWS deployment | **VALIDATED 2026-09-18, DESTROYED SAME DAY** — see [AWS validation](#aws-validation) and [validation record](docs/VALIDATION.md) |
 | GitHub Actions execution | **PASS (non-AWS jobs)** — pytest, Docker build, Trivy image scan, fmt/validate/mock-tests, tflint, Trivy config scan; AWS plan/deploy jobs **NOT RUN** (no credentials) |
 
 The distinction between static design, local execution, and real AWS evidence is intentional. See the [audit](docs/AUDIT.md) and [publication report](docs/PUBLICATION_REPORT.md).
@@ -52,6 +54,20 @@ flowchart LR
 
 See [the detailed architecture](docs/ARCHITECTURE.md) for boundaries and the NAT decision.
 
+## AWS validation
+
+Real AWS validation — 2026-09-18, ap-northeast-1. The environment was destroyed after validation; nothing is still running.
+
+- Terraform plan / apply: PASS (60 resources, no changes to existing infrastructure, no NAT gateway)
+- ECS Fargate: 2/2 tasks RUNNING with no NAT — image pull, secret retrieval, and log delivery all worked through VPC endpoints
+- ALB: 2/2 targets HEALTHY across both AZs
+- `/health`: HTTP 200; `/ready`: HTTP 200 with real RDS connectivity
+- CloudWatch logs and all 7 alarms: verified
+- Game-day: one task stopped, ECS replaced it in ~60 seconds, `/health` stayed 200
+- `terraform destroy` and cleanup: PASS, verified via API
+
+Details: [validation record](docs/VALIDATION.md). Verdict: [publication report](docs/PUBLICATION_REPORT.md).
+
 ## Technology stack
 
 Terraform 1.14, AWS Provider 6.x, VPC, ALB, ECS Fargate, ECR, RDS PostgreSQL, Secrets Manager, IAM, CloudWatch, SNS, FastAPI, Docker, pytest, GitHub Actions, tflint, and Trivy.
@@ -71,7 +87,7 @@ MIGRATION_PLAN.md     evidence-based disposition of the previous project
 ## Design decisions and trade-offs
 
 - **Two AZs:** ALB and ECS can tolerate one placement-zone failure. RDS is Single-AZ by default to control portfolio cost; `db_multi_az=true` models the production choice.
-- **No NAT by default:** ECR API/DKR, CloudWatch Logs, Secrets Manager interface endpoints and an S3 gateway endpoint provide required AWS paths. This deliberately prevents general internet egress, but several interface endpoints have meaningful hourly cost.
+- **No NAT by default:** ECR API/DKR, CloudWatch Logs, Secrets Manager interface endpoints and an S3 gateway endpoint provide required AWS paths. This deliberately prevents general internet egress, but several interface endpoints have meaningful hourly cost. Verified on real AWS 2026-09-18: private tasks pulled the image, retrieved the secret, and shipped logs with no NAT gateway present.
 - **Liveness versus readiness:** ALB and container health use `/health`, which tests the process. `/ready` tests PostgreSQL. Making database readiness the liveness check could restart every task during a dependency incident and amplify failure.
 - **HTTP for the disposable demo:** the public listener is HTTP to avoid requiring a domain and certificate. Production must terminate TLS with ACM, redirect HTTP to HTTPS, and define an appropriate security policy.
 - **Controlled service bootstrap:** `enable_service=false` creates the ECR repository and platform without starting an image that does not exist. Push a SHA-tagged image, then enable the service.
@@ -124,7 +140,7 @@ The initial availability objective is 99.9% non-5xx responses over 30 days; late
 
 ## Incident response
 
-[Incident simulations](docs/INCIDENTS.md) cover unhealthy ALB targets, blocked ECS-to-RDS traffic, and Secrets Manager `AccessDenied`. Each records symptoms, impact, detection, hypotheses, evidence-driven investigation, root cause, resolution, permanent fix, and prevention. A [blameless postmortem](docs/POSTMORTEM.md) models the secret-permission incident.
+[Incident simulations](docs/INCIDENTS.md) cover unhealthy ALB targets, blocked ECS-to-RDS traffic, and Secrets Manager `AccessDenied`. Each records symptoms, impact, detection, hypotheses, evidence-driven investigation, root cause, resolution, permanent fix, and prevention. A [blameless postmortem](docs/POSTMORTEM.md) models the secret-permission incident. On real AWS 2026-09-18, one task was intentionally stopped: ECS replaced it in ~60 seconds and `/health` stayed HTTP 200 with no Terraform change.
 
 ## Deploy
 
