@@ -2,6 +2,8 @@
 *.tfstate
 *.tfstate.*
 *.tfplan
+tfplan
+destroy.tfplan
 backend.hcl
 terraform.tfvars
 __pycache__/

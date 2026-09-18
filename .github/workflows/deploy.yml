@@ -32,4 +32,13 @@ jobs:
       - uses: aws-actions/amazon-ecr-login@v2
       - run: docker build --provenance=false --tag "${{ steps.ecr.outputs.url }}:${GITHUB_SHA}" app
       - run: docker push "${{ steps.ecr.outputs.url }}:${GITHUB_SHA}"
-      - run: terraform -chdir=infra apply -input=false -auto-approve -var="image_tag=${GITHUB_SHA}" -var="enable_service=true"
+      - run: terraform -chdir=infra plan -input=false -lock-timeout=5m -var="image_tag=${GITHUB_SHA}" -var="enable_service=true" -out=tfplan
+      - run: terraform -chdir=infra show -no-color tfplan
+      - run: terraform -chdir=infra apply -input=false tfplan
+      - name: Wait for ECS stability
+        run: >-
+          aws ecs wait services-stable
+          --cluster "$(terraform -chdir=infra output -raw ecs_cluster_name)"
+          --services "$(terraform -chdir=infra output -raw ecs_service_name)"
+      - name: Smoke test
+        run: curl --fail --retry 12 --retry-delay 10 --retry-all-errors "$(terraform -chdir=infra output -raw alb_url)/health"

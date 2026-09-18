@@ -8,6 +8,16 @@ output "ecr_repository_url" {
   value       = module.service.ecr_repository_url
 }
 
+output "ecs_cluster_name" {
+  description = "ECS cluster used by deployment verification."
+  value       = module.service.ecs_cluster_name
+}
+
+output "ecs_service_name" {
+  description = "ECS service used by deployment verification."
+  value       = module.service.ecs_service_name
+}
+
 output "database_secret_arn" {
   description = "ARN of the RDS-managed master-user secret."
   value       = module.database.master_user_secret_arn

@@ -1,5 +1,10 @@
 # Production-oriented AWS Container Platform
 
+![Terraform](https://img.shields.io/badge/Terraform-1.14-844FBA?logo=terraform)
+![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-232F3E?logo=amazonwebservices)
+![Docker](https://img.shields.io/badge/Docker-locally%20validated-2496ED?logo=docker)
+![CI](https://img.shields.io/badge/GitHub%20Actions-not%20yet%20executed-lightgrey?logo=githubactions)
+
 ## Overview
 
 This portfolio builds a small FastAPI service on AWS using Terraform:
@@ -18,6 +23,17 @@ It is a learning and validation environment designed around production concerns;
 - Monitoring ordered by user impact, service health, then infrastructure saturation.
 - SLI/SLO reasoning, three incident investigations, and a blameless postmortem.
 - GitHub Actions with OIDC, approval-gated deployment, static analysis, tests, and image build.
+
+## Validation snapshot
+
+| Area | Status |
+| --- | --- |
+| Terraform format / init / validate / mock tests | See [current validation record](docs/VALIDATION.md) |
+| Application tests / Docker build / container `/health` | See [current validation record](docs/VALIDATION.md) |
+| Real AWS plan and deployment | **BLOCKED** — no AWS identity or resource-creation approval |
+| GitHub Actions execution | **NOT RUN** |
+
+The distinction between static design, local execution, and real AWS evidence is intentional. See the [audit](docs/AUDIT.md) and [publication report](docs/PUBLICATION_REPORT.md).
 
 ## Architecture
 
@@ -90,7 +106,7 @@ Pull requests run:
 - Trivy image vulnerability/secret scanning after the Docker build;
 - `terraform plan` for trusted same-repository PRs using GitHub OIDC.
 
-Fork PRs do not receive AWS credentials and therefore skip the plan job. Configure repository variable `TF_STATE_BUCKET`, secret `AWS_ROLE_ARN`, GitHub Environments named `plan` and `production`, and a narrowly scoped AWS OIDC role. Deployment builds/pushes `${GITHUB_SHA}` and applies that exact tag. Production should additionally sign/attest images, scan the final image, wait for ECS stability, run smoke tests, and automate rollback on failed verification.
+Fork PRs do not receive AWS credentials and therefore skip the plan job. Configure repository variable `TF_STATE_BUCKET`, secret `AWS_ROLE_ARN`, GitHub Environments named `plan` and `production`, and a narrowly scoped AWS OIDC role. Deployment builds/pushes `${GITHUB_SHA}`, displays and applies a saved plan, waits for ECS stability, and checks `/health`. Image signing/attestation, a private-path `/ready` check, and an explicit automated rollback policy remain production follow-ups.
 
 ## Observability
 
