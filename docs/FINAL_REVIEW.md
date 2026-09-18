@@ -1,5 +1,7 @@
 # Senior SRE / Platform Engineering review
 
+> Superseded in part: this review was written before the real AWS validation. The deployment, verification, game-day, and destroy evidence from 2026-09-18 — and the current **READY** verdict — are recorded in [the publication report](PUBLICATION_REPORT.md) and [the validation record](VALIDATION.md). The design analysis below remains accurate.
+
 ## Publication decision
 
 **Not yet ready for public claims of a deployed, end-to-end validated platform.** Static implementation quality is suitable for private review, but the High findings below must be closed first.

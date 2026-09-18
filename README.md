@@ -30,7 +30,7 @@ It is a learning and validation environment designed around production concerns;
 | --- | --- |
 | Terraform format / init / validate / mock tests | See [current validation record](docs/VALIDATION.md) |
 | Application tests / Docker build / container `/health` | See [current validation record](docs/VALIDATION.md) |
-| Real AWS plan and deployment | **BLOCKED** — no AWS identity or resource-creation approval |
+| Real AWS deployment | **VALIDATED 2026-09-18, DESTROYED SAME DAY** — plan/apply, ECR push, ECS 2/2, healthy targets, `/health` + `/ready` 200, game-day recovery, API-verified cleanup. No standing environment. See [validation record](docs/VALIDATION.md) |
 | GitHub Actions execution | **PASS (non-AWS jobs)** — pytest, Docker build, Trivy image scan, fmt/validate/mock-tests, tflint, Trivy config scan; AWS plan/deploy jobs **NOT RUN** (no credentials) |
 
 The distinction between static design, local execution, and real AWS evidence is intentional. See the [audit](docs/AUDIT.md) and [publication report](docs/PUBLICATION_REPORT.md).

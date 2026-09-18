@@ -4,62 +4,64 @@ Date: 2026-09-18. Updated after GitHub push + CI execution (see "GitHub phase" b
 
 ## Final verdict
 
-**CONDITIONALLY READY** — publishable as a portfolio with the stated limitations, not as a deployed platform.
+**READY** — real AWS deployment validated 2026-09-18 and the temporary environment destroyed the same day.
 
-Reason: no Critical findings remain; local checks pass; non-AWS CI jobs are green on GitHub. The blocking gaps are environmental (no AWS credentials, no AWS deployment), not code defects. The README, validation record, and docs label those gaps BLOCKED/NOT RUN, so a reviewer is never misled. Public framing must stay "locally validated + CI-verified; AWS deployment pending" until the release gate in `docs/VALIDATION.md` is completed.
+Reason: no Critical findings; local checks pass; non-AWS CI green; real plan reviewed (60 add, 0 change, 0 destroy); apply succeeded first try with no code changes; ECR/ECR-push/ECS/ALB/RDS/CloudWatch/security all verified against live AWS; game-day recovery observed; destroy + API-level cleanup verification complete. No claims exceed executed evidence. The only remaining NOT RUN items are the GitHub AWS-gated jobs (PR plan, dispatched deploy), which require standing credentials and are out of scope for a disposable validation.
+
+## AWS validation phase (2026-09-18, ap-northeast-1, SSO profile)
+
+Deployed once, verified end-to-end, destroyed same day. No standing environment remains.
 
 ## Git status
 
-- Working tree clean after commits below; `git status --short` empty.
-- Pre-commit secret scan: no AWS keys, tokens, private keys, passwords, or account IDs in tracked or staged files. Only `manage_master_user_password = true` (correct pattern, no value) and `secrets.AWS_ROLE_ARN` / `vars.TF_STATE_BUCKET` references by name.
-- `.gitignore` hardened: bare `tfplan` (used by `-out=tfplan`) was not covered by `*.tfplan`; added `tfplan` + `destroy.tfplan`.
+- Pre-deploy tree clean; post-validation changes are documentation only (no Terraform/app code changes were needed — deploy worked first try).
+- Secret scan repeated before push: no credentials, account IDs, or state in tracked files.
 
-## Commits
+## Commit
 
-- `9552e5b` — `feat: complete local validation and portfolio documentation` (9 files: CI least-privilege + saved-plan deploy, verification outputs, README snapshot, AUDIT/VALIDATION/INTERVIEW_GUIDE/PUBLICATION_REPORT, gitignore hardening).
-- `169d72f` — `fix: use v-prefixed trivy-action tag so CI can resolve it` (CI failed: `@0.33.1` does not exist; tags are `v`-prefixed).
-- `a907d93` — `fix: bump trivy-action to v0.36.0 for a downloadable Trivy release` (CI failed: action v0.33.1 defaults to Trivy v0.65.0, whose release no longer exists — 404; latest Trivy release is v0.74.0).
+- `docs: record AWS deployment validation` (this report, VALIDATION.md, README note).
 
 ## Push
 
-- New private repo `Kkasuga904/production-oriented-aws-container-platform`, `main` pushed without force (`9552e5b..169d72f`, then `a907d93`).
+- `main` pushed without force after cleanup verification.
 
 ## GitHub Actions execution
 
-- Run 35332841565 (commit `9552e5b`): FAILURE — both Trivy steps failed at action resolution (`@0.33.1` unresolvable).
-- Run 35332899546 (commit `169d72f`): FAILURE — action resolved, but Trivy v0.65.0 binary download 404'd in both jobs; rerun of failed jobs confirmed persistent, not transient. All other steps (pytest, Docker build, fmt/init/validate/test, tflint) passed.
-- Run 35333147317 (commit `a907d93`): SUCCESS — `application` and `terraform-static` fully green; `terraform-plan` correctly skipped on push (PR-gated by design, needs AWS credentials).
-- Actual CI finding value: two real defects in the workflow (bad tag, stale action) were caught only by execution — YAML review alone missed them.
+- Unchanged from prior phase: non-AWS jobs green; AWS-gated jobs NOT RUN (no standing OIDC credentials by design for a disposable validation).
 
 ## Local validation
 
-- `terraform fmt -check -recursive`: PASS. `infra init/validate`, `bootstrap init/validate`: PASS. `infra test`: 2 passed. `pytest app`: 3 passed. `docker build`: PASS. Container `healthy` + `/health` `{"status":"ok"}`: PASS (re-verified on final state). `/ready` vs disposable PostgreSQL: PASS (2026-09-18, app code unchanged since).
+- Unchanged: all PASS as previously recorded.
 
 ## CI validation
 
-- PASS: pytest, Docker build, Trivy image scan, fmt, init `-backend=false`, validate, mock-plan tests, `tflint --init`/`--recursive`, Trivy config scan.
-- NOT RUN: `terraform-plan` job (PR-only + needs OIDC role/bucket), `deploy` workflow (manual dispatch + needs AWS).
+- Unchanged: non-AWS jobs PASS on run 35333147317+.
 
 ## AWS validation
 
-- NOT RUN across the board: real plan BLOCKED (no credentials, none created); apply/deploy/destroy explicitly out of scope for this phase. No AWS resources created, modified, or deleted.
+- PASS across the board: real plan (60 add reviewed), bootstrap apply (5, verified), infra apply (60), ECR push (SHA tag), ECS 2/2 RUNNING via `services-stable`, targets 2/2 healthy, `/health` 200, `/ready` 200 (real RDS), RDS available/private, logs + 7 alarms OK, security assumptions API-verified, task-loss game day with automatic recovery, destroy (60) + cleanup API-verified + state bucket removed.
 
 ## Remaining blockers
 
-1. AWS credentials/OIDC role + state bucket → real `terraform plan` review.
-2. Cost-accepted isolated account → deploy → ECR push → stable service → `/health` + `/ready` → destroy.
-3. At least one incident game day with sanitized evidence.
-4. Then: flip repo to public, keep this report linked.
+- None for publication. Future work (not blockers): credentialed PR-plan run, dispatched deploy-workflow run, burn-rate alarms, deployment-failure event alert.
+
+## Publication verdict
+
+**READY.**
+
+## Prior phase history (CI execution, kept for audit trail)
+
+Prior commits: `9552e5b` (local validation + docs), `169d72f` + `a907d93` (trivy-action fixes — bad tag, stale Trivy default caught only by execution), `d145a67` (CI evidence + badge). CI runs 35332841565/35332899546 (failures, fixed) → 35333147317/35333333871 (green, non-AWS jobs).
 
 ## Score (10-point scale, strict)
 
 | Area | Score | Basis |
 | --- | --- | --- |
 | First Impression | 8 | README answers stack/architecture/status in under 2 minutes; badges restrained |
-| Terraform | 7 | fmt/init/validate/mock-tests pass; version pins and module boundaries clean; real plan unverified |
-| AWS Architecture | 7 | No-NAT path structurally complete and traced; endpoint/DNS/SG reasoning explicit; runtime unproven |
+| Terraform | 8 | Real plan reviewed by resource type, apply + destroy clean, version pins and module boundaries held on live AWS |
+| AWS Architecture | 8 | No-NAT startup path proven end-to-end (pull, secret, logs) on first attempt; 2AZ placement and private-only tasks verified via API |
 | Container | 8 | Build, healthy status, `/health` 200, and `/ready` against disposable PostgreSQL all executed today |
-| Security | 7 | Least-privilege roles, private subnets, managed secret, Trivy scans green in CI; endpoint SG CIDR scope is a documented trade-off |
+| Security | 8 | Roles/subnets/secret design verified on live AWS (task role zero policies, no public IPs, RDS private, 0 NAT); endpoint SG CIDR scope remains a documented trade-off |
 | CI/CD | 7 | Non-AWS jobs green on GitHub (run 35333147317); OIDC/saved-plan/stability-wait design intact; AWS jobs unexecuted |
 | Observability | 7 | User→service→infra alarm ordering with stated thresholds; burn-rate and deploy-event gaps admitted |
 | SRE / Reliability | 7 | SLI/SLO/error-budget limits honestly bounded; incidents are evidence-driven but game-day unexecuted |
@@ -85,20 +87,18 @@ No category with unverified execution was given full marks.
 
 ## What remains unverified
 
-- `terraform plan` against real AWS: BLOCKED (no CLI/credentials).
-- `terraform apply` + ECS RUNNING + ALB HEALTHY + HTTP checks + RDS connectivity + log delivery: NOT RUN.
-- GitHub Actions AWS jobs (plan on PR, deploy dispatch): NOT RUN — no OIDC role/bucket configured.
-- tflint / Trivy locally: NOT RUN — but both PASS on GitHub Actions.
-- Incident game days on AWS: designed, NOT RUN.
-- Cost behavior: estimated in prose, never metered.
+- GitHub Actions AWS jobs (plan on PR, deploy dispatch): NOT RUN — no standing OIDC credentials by design for this disposable validation.
+- tflint / Trivy locally: NOT RUN — both PASS on GitHub Actions and (for Trivy) unneeded locally.
+- Cost behavior beyond listing: metered only for one short session; environment destroyed same day.
+- Everything else on the release gate is verified (see "AWS validation" above).
 
 ## Critical / High issues
 
-- Critical: none in static review.
-- High (all explicitly BLOCKED/NOT RUN, none misrepresented):
-  1. No real AWS plan reviewed — closed only by a saved plan + checklist review in an isolated account.
-  2. No deployment/HTTP/RDS evidence — closed only by stable service, healthy targets, `/health` + `/ready` 200.
-  3. GitHub Actions AWS jobs never executed — closed only by credentialed plan run + approval-gated deploy run. (Non-AWS CI jobs are green since run 35333147317.)
+- Critical: none in static review, none discovered during live deploy/destroy.
+- High items from the static review, all closed by execution 2026-09-18:
+  1. ~~No real AWS plan reviewed~~ — 60-add plan reviewed by resource type (no NAT/EIP, no updates/destroys).
+  2. ~~No deployment/HTTP/RDS evidence~~ — stable 2/2 service, healthy targets, `/health` + `/ready` 200, RDS available/private.
+  3. GitHub Actions AWS jobs never executed — remains NOT RUN (no standing credentials); non-AWS CI jobs green. Not a code defect.
 - Previously open High items closed in code this review cycle: `id-token: write` scoped to the plan job; deploy workflow now plans/saves, shows, applies the same artifact, waits for `services-stable`, and smoke-tests `/health`; root outputs `ecs_cluster_name`/`ecs_service_name` added for verification; README validation matrix + badges added.
 
 ## Evaluated and intentionally not changed
@@ -113,7 +113,7 @@ No category with unverified execution was given full marks.
 4. `infra/outputs.tf`: verification outputs for cluster/service names.
 5. `README.md`: real CI status badge (replacing the stale "not yet executed" badge), validation snapshot, NAT/liveness/bootstrap/approval trade-offs.
 6. `.gitignore`: cover bare `tfplan` / `destroy.tfplan` plan files.
-7. `docs/VALIDATION.md`: timestamped local results + CI run evidence (tflint/Trivy PASS on CI, AWS jobs NOT RUN).
+7. `docs/VALIDATION.md`: full lifecycle record — local results, CI evidence, real plan/apply/verify/game-day/destroy with API-verified cleanup.
 8. `docs/INTERVIEW_GUIDE.md`: created — 29 implementation-grounded Q&A.
 9. `docs/PUBLICATION_REPORT.md`: this file.
 
@@ -127,11 +127,11 @@ No category with unverified execution was given full marks.
 
 ## Weakest portfolio points
 
-- Zero AWS runtime evidence — the single largest discount across scores.
-- AWS CI jobs (plan/deploy) unexecuted; OIDC trust never authenticated.
+- AWS CI jobs (plan/dispatch-deploy) unexecuted; OIDC trust never authenticated with standing credentials.
 - SLO implementation is a symptom alarm, not burn-rate alerting; no deployment-failure event alarm.
 - Single-AZ RDS default bounds every availability claim.
 - tflint/Trivy evidence exists only on CI runners, not locally.
+- No production traffic history: thresholds remain starting hypotheses.
 
 ## Questions likely to be asked in interviews
 
@@ -139,13 +139,11 @@ Covered in depth in `docs/INTERVIEW_GUIDE.md`. The five most probable: NAT-less 
 
 ## Recommended next actions (in order)
 
-1. ~~Push to a **private** repo; run PR CI green~~ — done for push CI; PR-triggered plan job still needs OIDC role + bucket + a test PR.
-2. Real `terraform plan` in an isolated account; file the saved plan + completed `TERRAFORM_PLAN_REVIEW.md`.
-3. Deploy → ECR push → stable service → `/health` + `/ready` 200 → destroy; record all in `VALIDATION.md`.
-4. Execute one incident game day (Incident 3 is cheapest) with sanitized evidence.
-5. Add deployment-failure event alerting and multi-window burn-rate alarms.
-6. Then publish public and reference this report.
+1. Flip the repo to public whenever ready; keep this report and VALIDATION.md linked from the README.
+2. Optional: credentialed PR-plan run to exercise the OIDC path.
+3. Add deployment-failure event alerting and multi-window burn-rate alarms.
+4. Re-validate on the next Terraform/AWS-provider major bump (plan + short deploy/destroy).
 
 ## Ready for public GitHub?
 
-Conditionally yes — with the current "locally validated, AWS pending" framing intact. If any claim implies deployed/proven AWS behavior, the answer reverts to NOT READY until the release gate is executed.
+Yes — the platform was deployed to real AWS on 2026-09-18, verified end-to-end, and destroyed the same day with API-verified cleanup. Claims match executed evidence throughout.
