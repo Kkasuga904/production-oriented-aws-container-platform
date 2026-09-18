@@ -11,13 +11,16 @@ Validated locally on 2026-09-18 (this session). A command is marked successful o
 | Bootstrap `terraform validate` | PASS | Run 2026-09-18 |
 | Terraform mock plan tests (`terraform test`) | PASS | `tests/offline.tftest.hcl`: 2 passed, 0 failed, run 2026-09-18 |
 | `terraform plan` (real AWS) | BLOCKED | No AWS CLI / credentials on this machine; no resources created |
-| tflint | NOT RUN | Not installed on this machine; CI workflow runs `tflint --recursive` |
-| Trivy config/image scan | NOT RUN | Not installed on this machine; CI workflow runs Trivy config + image scans |
+| tflint (local) | NOT RUN | Not installed on this machine |
+| tflint (CI) | PASS | `tflint --init` + `tflint --recursive` green on GitHub Actions run 35333147317, 2026-09-18 |
+| Trivy config/image scan (local) | NOT RUN | Not installed on this machine |
+| Trivy config + image scan (CI) | PASS | Both green on GitHub Actions run 35333147317 with `aquasecurity/trivy-action@v0.36.0`, 2026-09-18 |
 | Application tests (`pytest app`) | PASS | 3 passed, 1 third-party deprecation warning (starlette TestClient), run 2026-09-18 |
 | Docker build | PASS | Built `platform-portfolio:verify` from `app/`, run 2026-09-18 |
 | Container smoke test (`/health`) | PASS | Container reached Docker `healthy`; `curl /health` returned `{"status":"ok"}`, run 2026-09-18 |
 | PostgreSQL integration (`/ready`) | PASS | Disposable `postgres:16-alpine` + API containers; `/ready` returned `{"status":"ready"}`, run 2026-09-18 |
-| GitHub Actions execution | NOT RUN | Requires pushed repo, OIDC role, state-bucket variable, protected environments |
+| GitHub Actions execution (non-AWS jobs) | PASS | Run 35333147317 green 2026-09-18: pytest, Docker build, Trivy image scan, fmt/init/validate/mock-tests, tflint, Trivy config scan |
+| GitHub Actions (AWS plan/deploy jobs) | NOT RUN | No AWS credentials/role configured; plan job is PR-gated, deploy is manually dispatched |
 | AWS deploy / ALB / RDS verification | NOT RUN | Requires credentials, cost acceptance, ECR push, deployment |
 
 ## Tool availability on this machine (2026-09-18)
@@ -29,7 +32,7 @@ Validated locally on 2026-09-18 (this session). A command is marked successful o
 
 ## Required public-release gate
 
-1. Run the full CI workflow in a private repository first.
+1. ~~Run the full CI workflow in a private repository first.~~ Done for non-AWS jobs (run 35333147317, 2026-09-18); AWS-gated jobs still pending credentials.
 2. Review a real plan against an isolated AWS account.
 3. Deploy, wait for ECS stability, and verify `/health` and `/ready`.
 4. Execute at least one controlled incident game day and retain sanitized evidence.

@@ -3,7 +3,7 @@
 ![Terraform](https://img.shields.io/badge/Terraform-1.14-844FBA?logo=terraform)
 ![AWS](https://img.shields.io/badge/AWS-ECS%20Fargate-232F3E?logo=amazonwebservices)
 ![Docker](https://img.shields.io/badge/Docker-locally%20validated-2496ED?logo=docker)
-![CI](https://img.shields.io/badge/GitHub%20Actions-not%20yet%20executed-lightgrey?logo=githubactions)
+![CI](https://github.com/Kkasuga904/production-oriented-aws-container-platform/actions/workflows/ci.yml/badge.svg)
 
 ## Overview
 
@@ -31,7 +31,7 @@ It is a learning and validation environment designed around production concerns;
 | Terraform format / init / validate / mock tests | See [current validation record](docs/VALIDATION.md) |
 | Application tests / Docker build / container `/health` | See [current validation record](docs/VALIDATION.md) |
 | Real AWS plan and deployment | **BLOCKED** — no AWS identity or resource-creation approval |
-| GitHub Actions execution | **NOT RUN** |
+| GitHub Actions execution | **PASS (non-AWS jobs)** — pytest, Docker build, Trivy image scan, fmt/validate/mock-tests, tflint, Trivy config scan; AWS plan/deploy jobs **NOT RUN** (no credentials) |
 
 The distinction between static design, local execution, and real AWS evidence is intentional. See the [audit](docs/AUDIT.md) and [publication report](docs/PUBLICATION_REPORT.md).
 
