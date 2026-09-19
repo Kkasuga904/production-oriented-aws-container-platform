@@ -65,15 +65,30 @@ jobs:
       - uses: hashicorp/setup-terraform@v3
         with:
           terraform_version: 1.14.3
+      - name: Check AWS plan configuration
+        id: plan-config
+        env:
+          AWS_ROLE_ARN: ${{ secrets.AWS_ROLE_ARN }}
+          TF_STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          if [[ -n "$AWS_ROLE_ARN" && -n "$TF_STATE_BUCKET" ]]; then
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Skipping AWS plan because AWS_ROLE_ARN or TF_STATE_BUCKET is not configured."
+          fi
       - uses: aws-actions/configure-aws-credentials@v5
+        if: steps.plan-config.outputs.configured == 'true'
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-northeast-1
-      - run: >-
+      - if: steps.plan-config.outputs.configured == 'true'
+        run: >-
           terraform -chdir=infra init
           -backend-config="bucket=${{ vars.TF_STATE_BUCKET }}"
           -backend-config="key=platform-portfolio/dev/terraform.tfstate"
           -backend-config="region=ap-northeast-1"
           -backend-config="encrypt=true"
           -backend-config="use_lockfile=true"
-      - run: terraform -chdir=infra plan -input=false -lock-timeout=5m -out=tfplan
+      - if: steps.plan-config.outputs.configured == 'true'
+        run: terraform -chdir=infra plan -input=false -lock-timeout=5m -out=tfplan
