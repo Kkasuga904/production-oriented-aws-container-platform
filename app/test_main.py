@@ -19,6 +19,16 @@ def test_ready_fails_closed_without_secret(monkeypatch) -> None:
     assert response.json() == {"detail": "database unavailable"}
 
 
+def test_ready_fails_closed_when_secret_has_wrong_json_shape(monkeypatch) -> None:
+    monkeypatch.setenv("DB_SECRET_JSON", "[]")
+    monkeypatch.setenv("DB_HOST", "database.internal")
+
+    response = client.get("/ready")
+
+    assert response.status_code == 503
+    assert response.json() == {"detail": "database unavailable"}
+
+
 def test_database_config_defaults_to_tls(monkeypatch) -> None:
     monkeypatch.setenv("DB_SECRET_JSON", '{"username":"appadmin","password":"secret"}')
     monkeypatch.setenv("DB_HOST", "database.internal")
