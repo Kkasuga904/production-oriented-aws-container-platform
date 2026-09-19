@@ -40,6 +40,6 @@ def ready() -> dict[str, str]:
             with connection.cursor() as cursor:
                 cursor.execute("SELECT 1")
                 cursor.fetchone()
-    except (KeyError, ValueError, json.JSONDecodeError, psycopg.Error, RuntimeError) as error:
+    except (KeyError, TypeError, ValueError, json.JSONDecodeError, psycopg.Error, RuntimeError) as error:
         raise HTTPException(status_code=503, detail="database unavailable") from error
     return {"status": "ready"}
