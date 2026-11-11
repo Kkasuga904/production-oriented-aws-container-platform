@@ -12,11 +12,11 @@ jobs:
     runs-on: ubuntu-latest
     environment: production
     steps:
-      - uses: actions/checkout@v4
-      - uses: hashicorp/setup-terraform@v3
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
         with:
           terraform_version: 1.14.3
-      - uses: aws-actions/configure-aws-credentials@v5
+      - uses: aws-actions/configure-aws-credentials@61815dcd50bd041e203e49132bacad1fd04d2708 # v5
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
           aws-region: ap-northeast-1
@@ -29,7 +29,7 @@ jobs:
           -backend-config="use_lockfile=true"
       - id: ecr
         run: echo "url=$(terraform -chdir=infra output -raw ecr_repository_url)" >> "$GITHUB_OUTPUT"
-      - uses: aws-actions/amazon-ecr-login@v2
+      - uses: aws-actions/amazon-ecr-login@03f1aad4c6c7ffd436567f42f9384779290529bd # v2
       - run: docker build --provenance=false --tag "${{ steps.ecr.outputs.url }}:${GITHUB_SHA}" app
       - run: docker push "${{ steps.ecr.outputs.url }}:${GITHUB_SHA}"
       - run: terraform -chdir=infra plan -input=false -lock-timeout=5m -var="image_tag=${GITHUB_SHA}" -var="enable_service=true" -out=tfplan
